@@ -1,2 +1,2 @@
-require('./heading');
-require('./paragraph')
+require('./body-style.css');
+require('./canvas');
