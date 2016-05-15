@@ -7,53 +7,68 @@ Object.assign($canvas, {width, height});
 const ctx = $canvas.getContext('2d');
 const imageData = ctx.createImageData(width, height);
 
-const data = imageData.data;
+const range = (start, end, fn) => {
+    if (start >= 0 && end > start && typeof fn === 'function') {
+        for (let i = start; i <= end; i++) {
+            fn(i);
+        }
+    } else {
+        throw new Error('start, end and fn must be correctly defined!');
+    }
+};
 
-// Set all pixels opaque
-for (let i = 0; i < data.length; i += 4) {
-    data[i + 3] = 255;
-}
+const palette = [];
+range(192, 255, i => palette[i] = [255, 255, 255, 255]);
+range(128, 191, i => palette[i] = [i * 2, i * 1, i * 0.5, i]);
+range(64, 127, i => palette[i] = [i * 2, i * 1, i * 0.5, i]);
+range(0, 63, i => palette[i] = [i * 2, i * 1, i * 0.5, i]);
 
-// todo: keep separate colorValue array
-// todo: render from colorValue array
-// todo: add double buffering
+const render = (colorValues, intoData) => range(0, width * height - 1, index => intoData.set(colorFromColorValue(colorValues[index]), index << 2));
 
-const colorFromColorValue = colorValue => ({
-    r: colorValue,
-    g: colorValue >> 1,
-    b: colorValue >> 2,
-    a: 255
-});
+const colorFromColorValue = colorValue => palette[colorValue] || [0, 0, 0, 0];
 
-const randomColor = () => colorFromColorValue(Math.floor(Math.random() * 256));
-const nextColor = currentColorValue => colorFromColorValue((currentColorValue + 2) % 256);
+const randomColorValue = () => Math.floor(Math.random() * 256);
+const nextColorValue = currentColorValue => (currentColorValue + 2) % 256;
 
-const update = () => {
+const updateState = (prevColorValues, nextColorValues) => {
+
     // generate bottom line
-    for (let i = width * 4 * (height - 2); i < data.length; i += 4) {
-        const currentColorValue = data[i];
-        const newColor = currentColorValue > 0 ? nextColor(currentColorValue) : randomColor();
-        data[i] = newColor.r;
-        data[i + 1] = newColor.g;
-        data[i + 2] = newColor.b;
-        data[i + 3] = newColor.a;
+    for (let i = width * height; i < width * (height + 2); i++) {
+        const prevColorValue = prevColorValues[i];
+        const newColorValue = prevColorValue === 0 ? randomColorValue() : nextColorValue(prevColorValue);
+        nextColorValues[i] = newColorValue;
     }
 
     // burn upwards
-    for (let i = width * 4; i < width * 4 * (height - 2); i += 4) {
-        [0, 1, 2].forEach(n => {
-            data[i + n] = (
-                    data[i + n - 4] + data[i + n] + data[i + n + 4] +
-                    data[i + n + (width - 1) * 4] + data[i + n + (width + 1) * 4] +
-                    data[i + n + (2 * width - 1) * 4] + data[i + n + 2 * width * 4] + data[i + n + (2 * width + 1) * 4] +
-                    -6
-                ) >> 3;
-        });
+    for (let i = width; i < width * height; i++) {
+        nextColorValues[i] = (
+                prevColorValues[i + 0 * width - 1] + prevColorValues[i + 0 * width] + prevColorValues[i + 0 * width + 1] +
+                prevColorValues[i + 1 * width - 1] /*+ 00000000000000000000000000*/ + prevColorValues[i + 1 * width + 1] +
+                prevColorValues[i + 2 * width - 1] + prevColorValues[i + 2 * width] + prevColorValues[i + 2 * width + 1] - 8
+            ) >> 3;
     }
-    
-    // write to canvas
+
+};
+
+const colorValuesArrays = [0, 1].map(() => {
+    const colorValues = new Array(width * (height + 2));
+    colorValues.fill(0);
+    return colorValues;
+});
+let nextColorValuesArrayIndex = 0;
+const update = () => {
+
+    // update state
+    const prevColorValuesArrayIndex = nextColorValuesArrayIndex;
+    nextColorValuesArrayIndex = (nextColorValuesArrayIndex + 1) % 2;
+    updateState(colorValuesArrays[prevColorValuesArrayIndex], colorValuesArrays[nextColorValuesArrayIndex]);
+
+    // render state into imageData.data
+    render(colorValuesArrays[nextColorValuesArrayIndex], imageData.data);
+
+    // write imageData to canvas
     ctx.putImageData(imageData, 0, 0);
-    
+
     // next
     window.requestAnimationFrame(update);
 };
