@@ -1,7 +1,7 @@
 {
-  "name": "@jlowgren/06-bundle-with-css-and-hmr",
+  "name": "@hugojosefson/fire",
   "version": "0.1.0",
-  "description": "Bundle with CSS and hot module replacement (HMR)",
+  "description": "Canvas implementation of Fire algorithm I made as a kid.",
   "main": "build/bundle.js",
   "engine": {
     "node": ">=4.0.0"
@@ -10,7 +10,7 @@
     "prestart": "mkdir -p build && cp index.html build",
     "start": "webpack-dev-server --inline --hot --content-base build"
   },
-  "author": "Joacim Löwgren",
+  "author": "Hugo Josefson <hugo@josefson.org>",
   "license": "ISC",
   "devDependencies": {
     "css-loader": "^0.23.1",
