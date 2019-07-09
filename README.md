@@ -1,5 +1,7 @@
 # Fire
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/hugojosefson/fire.svg)](https://greenkeeper.io/)
+
 Re-implementation in JavaScript with Canvas, of Fire algorithm I used to do in x86 assembler on DOS
 as a kid.
 
